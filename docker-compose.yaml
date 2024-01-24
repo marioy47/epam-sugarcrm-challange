@@ -1,0 +1,52 @@
+version: '3'
+
+services:
+
+  web:
+    container_name: epam-challange-web
+    build: ./docker/php/
+    ports:
+      - "${APACHE_PORT:-8080}:80"
+    volumes:
+      - ./sugarinstaller:/tmp/sugarinstaller
+      - ./docker/php/phpinfo.php:/var/www/html/phpinfo.php:www-data
+
+  database:
+    image: mariadb
+    container_name: epam-challange-database
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-sugar}
+      MYSQL_USER: ${MYSQL_USER:-sugar}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-sugar}
+    volumes:
+      - mariadb-data:/var/lib/mysql
+
+  elastic:
+    image: elasticsearch:8.4.3
+    container_name: epam-challange-elastic
+    volumes:
+      - elastic-data:/usr/share/elasticsearch/data
+    environment:
+      - node.name=sugar1
+      - cluster.name=sugarcrm13
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    ulimits:
+        memlock:
+            soft: -1
+            hard: -1
+        nofile:
+            soft: 65536
+            hard: 65536
+
+networks:
+  default:
+    name: epam-challange-network
+
+volumes:
+  mariadb-data:
+  elastic-data:
+
+    # vim: ts=2 sw=2 et ft=yaml
