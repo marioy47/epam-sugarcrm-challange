@@ -1,1 +1,2 @@
-sugarinstaller
+sugarinstaller/*.zip
+.env

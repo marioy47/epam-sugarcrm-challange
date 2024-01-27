@@ -1,16 +1,12 @@
+# Not authorized for use outside the EPAM challage.
+#
+# Copyright Mario Yepes <marioy47@gmail.com> 2024
+
 version: '3'
 
 services:
 
-  web:
-    container_name: epam-challange-web
-    build: ./docker/php/
-    ports:
-      - "${APACHE_PORT:-8080}:80"
-    volumes:
-      - ./sugarinstaller:/tmp/sugarinstaller
-      - ./docker/php/phpinfo.php:/var/www/html/phpinfo.php:www-data
-
+  # MariaDb
   database:
     image: mariadb
     container_name: epam-challange-database
@@ -22,6 +18,32 @@ services:
     volumes:
       - mariadb-data:/var/lib/mysql
 
+  # PhpMyAdmin
+  pma: 
+    image: phpmyadmin:apache
+    container_name: epam-challange-pma
+    ports:
+      - ${PMA_PORT:-8081}:80
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      PMA_HOST: database 
+
+  # Php Apache2
+  web:
+    container_name: epam-challange-web
+    build: ./docker/php/
+    ports:
+      - "${APACHE_PORT:-8080}:80"
+      - "${APACHE_PORT_SSL:-8443}:443"
+    volumes:
+      - ./docker/php/000-default.conf:/etc/apache2/sites-available/000-default.conf:ro
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/sugar.ini:ro
+      - ./sugarinstaller:/tmp/sugarinstaller
+      - html-data:/var/www/html
+    environment:
+      - SUGAR_LICENCE=${SUGAR_LICENCE}
+
+  # Elastic Search
   elastic:
     image: elasticsearch:8.4.3
     container_name: epam-challange-elastic
@@ -48,5 +70,6 @@ networks:
 volumes:
   mariadb-data:
   elastic-data:
+  html-data:
 
     # vim: ts=2 sw=2 et ft=yaml

@@ -1,7 +1,11 @@
 
+# Not authorized for use outside the EPAM challage.
+#
+# Copyright Mario Yepes <marioy47@gmail.com> 2024
+
 FROM php:8.2-apache
 
-# persistent dependencies
+# Required Linux Packages
 RUN set -eux; \
   apt-get update; \
   apt-get install -y --no-install-recommends \
@@ -10,6 +14,7 @@ RUN set -eux; \
     zip \
     unzip \
     sudo \
+    rsync \
     libfreetype6-dev \
     libicu-dev \
     libjpeg-dev \
@@ -18,13 +23,9 @@ RUN set -eux; \
     libwebp-dev \
     libzip-dev
 
-# install the PHP extensions we need (https://make.wordpress.org/hosting/handbook/handbook/server-environment/#php-extensions)
+# PHP Extensions
 RUN set -ex; \
-  docker-php-ext-configure gd \
-    --with-freetype \
-    --with-jpeg \
-    --with-webp \
-  ; \
+  docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp ; \
   docker-php-ext-install -j "$(nproc)" \
     bcmath \
     exif \
@@ -37,14 +38,19 @@ RUN set -ex; \
   docker-php-ext-enable imagick; \
   rm -r /tmp/pear
 
-COPY apache.conf /etc/apache2/conf-available/sugar.conf
-COPY php.ini /usr/local/etc/php/conf.d/sugar.ini
+RUN set -eux; \
+	docker-php-ext-enable opcache; \
+	{ \
+		echo 'opcache.memory_consumption=128'; \
+		echo 'opcache.interned_strings_buffer=8'; \
+		echo 'opcache.max_accelerated_files=4000'; \
+		echo 'opcache.revalidate_freq=2'; \
+	} > /usr/local/etc/php/conf.d/opcache-recommended.ini
+
 
 RUN set -eux; \
-  a2enmod rewrite expires ; \
-  a2enconf sugar
+  a2enmod rewrite expires ;
 
-COPY docker-entrypoint.sh /usr/local/bin/ 
-
-ENTRYPOINT ["docker-entrypoint.sh"]
+COPY sugar-installer.sh /usr/local/bin/
+ENTRYPOINT ["sugar-installer.sh"]
 CMD ["apache2-foreground"]
